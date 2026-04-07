@@ -5,18 +5,18 @@ mod instructions;
 use instructions::*;
 declare_id!("BrVtjP4pUzeirhX744pzT1A7i7ZisbeMeu5NdE9aPQPG");
 
-#[derive(Accounts)]
-pub struct Initialize<'info> {
-    pub payer: &'info mut Signer,
-    pub system_program: &'info Program<System>,
-}
+// #[derive(Accounts)]
+// pub struct Initialize<'info> {
+//     pub payer: &'info mut Signer,
+//     pub system_program: &'info Program<System>,
+// }
 
-impl<'info> Initialize<'info> {
-    #[inline(always)]
-    pub fn initialize(&self) -> Result<(), ProgramError> {
-        Ok(())
-    }
-}
+// impl<'info> Initialize<'info> {
+//     #[inline(always)]
+//     pub fn initialize(&self) -> Result<(), ProgramError> {
+//         Ok(())
+//     }
+// }
 
 #[program]
 mod quasar_amm {
