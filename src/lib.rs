@@ -1,7 +1,8 @@
 #![cfg_attr(not(test), no_std)]
 
 use quasar_lang::prelude::*;
-
+mod instructions;
+use instructions::*;
 declare_id!("BrVtjP4pUzeirhX744pzT1A7i7ZisbeMeu5NdE9aPQPG");
 
 #[derive(Accounts)]
