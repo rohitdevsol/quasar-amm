@@ -1,7 +1,7 @@
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token };
 
-use crate::state::Config;
+use crate::{ events::PoolInitialized, state::Config };
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -81,6 +81,18 @@ impl<'info> Initialize<'info> {
             bumps.config, // to sign as pda
             bumps.mint_lp // to sign as pda for mint_lp
         );
+
+        Ok(())
+    }
+
+    #[inline(always)]
+    pub fn emit_event(&self) -> Result<(), ProgramError> {
+        emit!(PoolInitialized {
+            admin: *self.maker.address(),
+            config: *self.config.address(),
+            mint_x: *self.mint_x.address(),
+            mint_y: *self.mint_y.address(),
+        });
         Ok(())
     }
 }
