@@ -1,7 +1,9 @@
 #![cfg_attr(not(test), no_std)]
+#![allow(dead_code, unused)] // REMOVE AT LAST
 
 use quasar_lang::prelude::*;
 mod instructions;
+mod errors;
 mod state;
 mod events;
 use instructions::*;

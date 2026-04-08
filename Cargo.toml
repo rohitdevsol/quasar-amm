@@ -20,6 +20,7 @@ debug = []
 [dependencies]
 quasar-lang = { git = "https://github.com/blueshift-gg/quasar" }
 quasar-spl = { git = "https://github.com/blueshift-gg/quasar" }
+constant-product-curve = { git = "https://github.com/deanmlittle/constant-product-curve.git" }
 
 solana-instruction = { version = "3.2.0" }
 
