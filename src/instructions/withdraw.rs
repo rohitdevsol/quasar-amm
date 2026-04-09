@@ -2,7 +2,7 @@ use constant_product_curve::ConstantProduct;
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token, TokenCpi };
 
-use crate::{ errors::AmmError, state::Config };
+use crate::{ errors::AmmError, events::LiquidityRemoved, state::Config };
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -100,6 +100,7 @@ impl<'info> Withdraw<'info> {
     /// * `amount` - Amount of LP tokens to burn
     /// * `min_x` - Minimum amount of token X user expects to receive
     /// * `min_y` - Minimum amount of token Y user expects to receive
+    #[inline(always)]
     pub fn withdraw(
         &mut self,
         amount: u64,
@@ -148,12 +149,14 @@ impl<'info> Withdraw<'info> {
         Ok(())
     }
 
+    #[inline(always)]
     pub fn burn_lp_tokens(&mut self, amount: u64) -> Result<(), ProgramError> {
         /// burn lp tokens from the user lp account
         self.token_program.burn(self.user_ata_lp, self.mint_lp, self.user, amount).invoke()?;
         Ok(())
     }
 
+    #[inline(always)]
     pub fn withdraw_tokens(
         &mut self,
         amount: u64,
@@ -174,5 +177,14 @@ impl<'info> Withdraw<'info> {
         self.token_program
             .transfer_checked(from, mint, to, self.config, amount, decimals)
             .invoke_signed(&self.config_seeds(bumps))
+    }
+
+    #[inline(always)]
+    pub fn emit_event(&self) -> Result<(), ProgramError> {
+        emit!(LiquidityRemoved {
+            config: *self.config.address(),
+            user: *self.user.address(),
+        });
+        Ok(())
     }
 }

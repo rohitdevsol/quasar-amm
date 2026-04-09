@@ -2,7 +2,7 @@ use constant_product_curve::ConstantProduct;
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token, TokenCpi };
 
-use crate::{ errors::AmmError, state::Config };
+use crate::{ errors::AmmError, events::LiquidityAdded, state::Config };
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -97,6 +97,7 @@ pub struct Deposit<'info> {
 }
 
 impl<'info> Deposit<'info> {
+    #[inline(always)]
     pub fn deposit(
         &mut self,
         amount: u64, // amount of LP tokens to mint to the user
@@ -146,6 +147,7 @@ impl<'info> Deposit<'info> {
         Ok(())
     }
 
+    #[inline(always)]
     pub fn deposit_tokens(&self, is_x: bool, amount: u64) -> Result<(), ProgramError> {
         let (
             from, // User's token account
@@ -160,6 +162,7 @@ impl<'info> Deposit<'info> {
         self.token_program.transfer_checked(from, mint, to, self.user, amount, decimals).invoke()
     }
 
+    #[inline(always)]
     pub fn mint_lp_tokens(&self, amount: u64, bump: &DepositBumps) -> Result<(), ProgramError> {
         self.token_program
             .mint_to(self.mint_lp, self.user_ata_lp, self.config, amount)
@@ -167,5 +170,14 @@ impl<'info> Deposit<'info> {
 
         // bump.config_seeds() -> OLD API
         // new changes about defining and accessing seeds were pushed on April 8 2026
+    }
+
+    #[inline(always)]
+    pub fn emit_event(&self) -> Result<(), ProgramError> {
+        emit!(LiquidityAdded {
+            user: *self.user.address(),
+            config: *self.config.address(),
+        });
+        Ok(())
     }
 }

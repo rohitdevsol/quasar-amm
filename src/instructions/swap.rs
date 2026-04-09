@@ -2,7 +2,7 @@ use constant_product_curve::{ ConstantProduct, LiquidityPair };
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token, TokenCpi };
 
-use crate::{ errors::AmmError, instructions::WithdrawBumps, state::Config };
+use crate::{ errors::AmmError, events::Swapped, instructions::WithdrawBumps, state::Config };
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -84,6 +84,7 @@ pub struct Swap<'info> {
 }
 
 impl<'info> Swap<'info> {
+    #[inline(always)]
     pub fn swap(
         &mut self,
         is_x: bool,
@@ -123,6 +124,7 @@ impl<'info> Swap<'info> {
         Ok(())
     }
 
+    #[inline(always)]
     fn deposit_token(&mut self, is_x: bool, amount: u64) -> Result<(), ProgramError> {
         let (from, to, mint, decimals) = match is_x {
             true => (self.user_ata_x, self.vault_x, self.mint_x, self.mint_x.decimals()),
@@ -132,6 +134,7 @@ impl<'info> Swap<'info> {
         self.token_program.transfer_checked(from, mint, to, self.user, amount, decimals).invoke()
     }
 
+    #[inline(always)]
     fn withdraw_token(
         &mut self,
         is_x: bool,
@@ -146,5 +149,15 @@ impl<'info> Swap<'info> {
         self.token_program
             .transfer_checked(from, mint, to, self.config, amount, decimals)
             .invoke_signed(&self.config_seeds(bumps))
+    }
+
+    #[inline(always)]
+    pub fn emit_event(&self) -> Result<(), ProgramError> {
+        emit!(Swapped {
+            config: *self.config.address(),
+            user: *self.user.address(),
+        });
+
+        Ok(())
     }
 }
