@@ -20,9 +20,6 @@ pub struct PoolInitialized {
 pub struct LiquidityAdded {
     pub config: Address, // which pool
     pub user: Address, // who deposited
-    pub amount_x: u64, // how much token X went in
-    pub amount_y: u64, // how much token Y went in
-    pub lp_minted: u64, // how many LP tokens they received
 }
 
 // Emitted when someone removes liquidity
@@ -30,9 +27,6 @@ pub struct LiquidityAdded {
 pub struct LiquidityRemoved {
     pub config: Address,
     pub user: Address,
-    pub amount_x: u64, // how much token X came out
-    pub amount_y: u64, // how much token Y came out
-    pub lp_burned: u64, // how many LP tokens were burned
 }
 
 // Emitted on every swap
@@ -40,9 +34,6 @@ pub struct LiquidityRemoved {
 pub struct Swapped {
     pub config: Address,
     pub user: Address,
-    pub is_x_to_y: bool, // direction of swap
-
-    // pub fee_paid: u64, // actual fee charged (amount_in * fee_bps / 10000)
 }
 
 // Emitted when pool is locked or unlocked
