@@ -151,7 +151,7 @@ impl<'info> Withdraw<'info> {
 
     #[inline(always)]
     pub fn burn_lp_tokens(&mut self, amount: u64) -> Result<(), ProgramError> {
-        /// burn lp tokens from the user lp account
+        // burn lp tokens from the user lp account
         self.token_program.burn(self.user_ata_lp, self.mint_lp, self.user, amount).invoke()?;
         Ok(())
     }
@@ -173,7 +173,7 @@ impl<'info> Withdraw<'info> {
             false => (self.user_ata_y, self.vault_y, self.mint_y, self.mint_y.decimals()),
         };
 
-        /// Transfers tokens from vault to user's account
+        // Transfers tokens from vault to user's account
         self.token_program
             .transfer_checked(from, mint, to, self.config, amount, decimals)
             .invoke_signed(&self.config_seeds(bumps))

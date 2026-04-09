@@ -2,7 +2,7 @@ use constant_product_curve::{ ConstantProduct, LiquidityPair };
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token, TokenCpi };
 
-use crate::{ errors::AmmError, events::Swapped, instructions::WithdrawBumps, state::Config };
+use crate::{ errors::AmmError, events::Swapped, state::Config };
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
