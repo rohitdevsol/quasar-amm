@@ -4,6 +4,7 @@ use quasar_spl::{ AssociatedTokenProgram, Mint, Token };
 use crate::{ events::PoolInitialized, state::Config };
 
 #[derive(Accounts)]
+#[instruction(seed:u64)]
 pub struct Initialize<'info> {
     // The person/admin who is going to make the pool
     // mut -> because it will pay while creating accounts
@@ -17,13 +18,14 @@ pub struct Initialize<'info> {
 
     // vault_x will hold all deposited token X (This is an ATA)
     // owner is config pda
-    // Type is Token because .. AssociatedToken is removed from quasar-spl ( maintainer verified )
+    // Type is Token because .. AssociatedToken type is removed from quasar-spl ( maintainer verified ( _LOSTE ) )
     #[account(
         init,
         mut,
         payer = maker,
         associated_token::mint = mint_x,
-        associated_token::authority = config 
+        associated_token::authority = config ,
+        associated_token::token_program = token_program, // must for token 2022 in quasar.. not needed here though
     )]
     pub vault_x: &'info Account<Token>,
 
@@ -33,11 +35,12 @@ pub struct Initialize<'info> {
         mut,
         payer = maker,
         associated_token::mint = mint_y,
-        associated_token::authority = config 
+        associated_token::authority = config,
+        associated_token::token_program = token_program, // must for token 2022 in quasar.. not needed here though
     )]
     pub vault_y: &'info Account<Token>,
 
-    #[account(init, payer = maker, seeds = [b"config", maker], bump)]
+    #[account(init, payer = maker, seeds = Config::seeds(seed), bump)]
     pub config: &'info mut Account<Config>,
 
     // liquidity provider token mint
@@ -71,6 +74,7 @@ impl<'info> Initialize<'info> {
         seed: u64,
         bumps: &InitializeBumps
     ) -> Result<(), ProgramError> {
+        // Initialize the config account
         self.config.set_inner(
             seed, // part of pda seeds
             None, // no one can update the pool .. TODO

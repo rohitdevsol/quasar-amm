@@ -1,5 +1,5 @@
 use constant_product_curve::ConstantProduct;
-use quasar_lang::{ cpi::CpiAccount, prelude::* };
+use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token, TokenCpi };
 
 use crate::{ errors::AmmError, state::Config };
@@ -17,7 +17,8 @@ pub struct Deposit<'info> {
 
     // main config of amm
     #[account(
-        seeds = [b"config"], // , config.seed.get() -- facing issues here
+        //seeds = [b"config"], // , config.seed.get() -- facing issues here
+        seeds = Config::seeds(config.seed),
         bump = config.config_bump,
         has_one = mint_x,
         has_one = mint_y
@@ -27,7 +28,7 @@ pub struct Deposit<'info> {
     // The LP provider token mint for this pool
     #[account(
         mut,
-        seeds = [b"lp", config],
+        seeds = Config::seeds(config),
         bump = config.lp_bump
     )]
     pub mint_lp: &'info Account<Mint>,
@@ -47,7 +48,8 @@ pub struct Deposit<'info> {
     #[account(
         mut,
         associated_token::mint = mint_y,
-        associated_token::authority = config 
+        associated_token::authority = config ,
+        associated_token::token_program = token_program
     )]
     pub vault_y: &'info Account<Token>,
 
@@ -105,8 +107,6 @@ impl<'info> Deposit<'info> {
         // ensure that the pool is not locked
         require!(self.config.locked == false, AmmError::PoolLocked);
 
-        let hello = self.config.seed.get().to_le_bytes();
-
         // user should ask for more than 0 lp tokens to mint
         require!(amount != 0, AmmError::InvalidAmount);
 
@@ -141,7 +141,7 @@ impl<'info> Deposit<'info> {
         // deposit token from user to vault (X)
         self.deposit_tokens(false, y)?;
         // Mint LP tokens to user as proof of liquidity provision
-        self.mint_lp_tokens(amount, bump);
+        self.mint_lp_tokens(amount, bump)?;
 
         Ok(())
     }
@@ -163,6 +163,9 @@ impl<'info> Deposit<'info> {
     pub fn mint_lp_tokens(&self, amount: u64, bump: &DepositBumps) -> Result<(), ProgramError> {
         self.token_program
             .mint_to(self.mint_lp, self.user_ata_lp, self.config, amount)
-            .invoke_signed(&bump.config_seeds())
+            .invoke_signed(&self.config_seeds(bump))
+
+        // bump.config_seeds() -> OLD API
+        // new changes about defining and accessing seeds were pushed on April 8 2026
     }
 }
