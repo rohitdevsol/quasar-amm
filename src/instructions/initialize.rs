@@ -4,7 +4,7 @@ use quasar_spl::{ AssociatedTokenProgram, Mint, Token };
 use crate::{ events::PoolInitialized, state::{ Config, ConfigInner } };
 
 #[derive(Accounts)]
-#[instruction(fee:u16, seed:u64)]
+#[instruction(_fee:u16, seed:u64)]
 pub struct Initialize<'info> {
     // The person/admin who is going to make the pool
     // mut -> because it will pay while creating accounts
