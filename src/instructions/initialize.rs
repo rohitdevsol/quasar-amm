@@ -1,10 +1,10 @@
 use quasar_lang::prelude::*;
 use quasar_spl::{ AssociatedTokenProgram, Mint, Token };
 
-use crate::{ events::PoolInitialized, state::Config };
+use crate::{ events::PoolInitialized, state::{ Config, ConfigInner } };
 
 #[derive(Accounts)]
-#[instruction(seed:u64)]
+#[instruction(fee:u16, seed:u64)]
 pub struct Initialize<'info> {
     // The person/admin who is going to make the pool
     // mut -> because it will pay while creating accounts
@@ -77,19 +77,20 @@ impl<'info> Initialize<'info> {
         &mut self,
         fee: u16,
         seed: u64,
-        bumps: &InitializeBumps
+        bumps: &InitializeBumps,
     ) -> Result<(), ProgramError> {
         // Initialize the config account
-        self.config.set_inner(
-            seed, // part of pda seeds
-            None, // no one can update the pool .. TODO
-            *self.mint_x.address(), // validate vaults belong to the correct mint
-            *self.mint_y.address(),
-            fee, // for every swap
-            false, // every instruction will check it
-            bumps.config, // to sign as pda
-            bumps.mint_lp // to sign as pda for mint_lp
-        );
+
+        self.config.set_inner(ConfigInner {
+            seed,
+            authority: None,
+            mint_x: *self.mint_x.address(),
+            mint_y: *self.mint_y.address(),
+            fee_bps: fee,
+            locked: false,
+            config_bump: bumps.config,
+            lp_bump: bumps.mint_lp,
+        });
 
         Ok(())
     }

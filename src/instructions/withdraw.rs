@@ -28,8 +28,11 @@ pub struct Withdraw<'info> {
     // The LP provider token mint for this pool
     #[account(
         mut,
-        seeds = Config::seeds(config),
-        bump = config.lp_bump
+        seeds = [b"lp", config],
+        bump = config.lp_bump,
+        mint::decimals = 6,
+        mint::authority = config,
+        mint::freeze_authority = config
     )]
     pub mint_lp: &'info Account<Mint>,
 

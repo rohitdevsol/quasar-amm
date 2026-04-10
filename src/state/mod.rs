@@ -1,8 +1,9 @@
 use quasar_lang::prelude::*;
 
-#[account(discriminator = 1)]
+#[account(discriminator = 1, set_inner)]
 #[seeds(b"config", seed:u64)]
-#[seeds(b"lp", config:Config )]
+// NOTE: LP mint PDA uses raw seeds = [b"lp", config] in instruction files
+// Quasar only supports one #[seeds] per struct, so the LP seeds cannot be defined here
 pub struct Config {
     pub seed: u64, //  — part of PDA seeds, store it
     pub authority: Option<Address>, //  — who can lock/update the pool

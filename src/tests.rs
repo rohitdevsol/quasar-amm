@@ -12,7 +12,6 @@ use quasar_amm_client::{
     DepositInstruction,
     WithdrawInstruction,
     SwapInstruction,
-    TogglePoolInstruction,
 };
 
 // ---------------------------------------------------------------------------
@@ -58,8 +57,10 @@ const MINT_SPEC: Mint = Mint {
     supply: 100_000_000_000,
 };
 
-const SEED: u64 = 42;
 const FEE: u16 = 30; // 0.3% fee in basis points
+use std::sync::atomic::{AtomicU64, Ordering};
+static NEXT_SEED: AtomicU64 = AtomicU64::new(42);
+
 
 // ---------------------------------------------------------------------------
 // Helper — read an SPL token account from SVM state
@@ -92,53 +93,59 @@ fn setup() -> (QuasarSvm, State) {
     let user = Keypair::new();
     let mint_x = Pubkey::new_unique();
     let mint_y = Pubkey::new_unique();
+    let seed = NEXT_SEED.fetch_add(1, Ordering::SeqCst);
 
-    println!("==== Maker ==== {}", maker.pubkey());
-    println!("==== User ==== {}", user.pubkey());
-    println!("==== Mint X ==== {}", mint_x);
-    println!("==== Mint Y ==== {}", mint_y);
+    let mut out = String::new();
+    out.push_str("\n==== Generating new independent state with random accounts ====\n");
+    out.push_str(&format!("==== Seed ==== {}\n", seed));
+    out.push_str(&format!("==== Maker ==== {}\n", maker.pubkey()));
+    out.push_str(&format!("==== User ==== {}\n", user.pubkey()));
+    out.push_str(&format!("==== Mint X ==== {}\n", mint_x));
+    out.push_str(&format!("==== Mint Y ==== {}\n\n", mint_y));
 
     // derive config PDA: seeds = [b"config", seed.to_le_bytes()]
-    let (config, _) = Pubkey::find_program_address(&[b"config", &SEED.to_le_bytes()], &crate::ID);
+    let (config, _) = Pubkey::find_program_address(&[b"config", &seed.to_le_bytes()], &crate::ID);
 
-    println!("==== Config ==== {}", config);
+    out.push_str(&format!("==== Config ==== {}\n", config));
     // derive mint_lp PDA: seeds = [b"lp", config]
     let (mint_lp, _) = Pubkey::find_program_address(&[b"lp", config.as_ref()], &crate::ID);
 
-    println!("==== Mint LP ==== {}", mint_lp);
+    out.push_str(&format!("==== Mint LP ==== {}\n", mint_lp));
     // derive vault ATAs — owned by config PDA
     let (vault_x, _) = Pubkey::find_program_address(
         &[config.as_ref(), quasar_svm::SPL_TOKEN_PROGRAM_ID.as_ref(), mint_x.as_ref()],
         &quasar_svm::SPL_ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    println!("==== Vault X ==== {}", vault_x);
+    out.push_str(&format!("==== Vault X ==== {}\n", vault_x));
 
     let (vault_y, _) = Pubkey::find_program_address(
         &[config.as_ref(), quasar_svm::SPL_TOKEN_PROGRAM_ID.as_ref(), mint_y.as_ref()],
         &quasar_svm::SPL_ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    println!("==== Vault Y ==== {}", vault_y);
+    out.push_str(&format!("==== Vault Y ==== {}\n\n", vault_y));
     // derive user ATAs
     let (user_ata_x, _) = Pubkey::find_program_address(
         &[user.pubkey().as_ref(), quasar_svm::SPL_TOKEN_PROGRAM_ID.as_ref(), mint_x.as_ref()],
         &quasar_svm::SPL_ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    println!("==== User ATA X ==== {}", user_ata_x);
+    out.push_str(&format!("==== User ATA X ==== {}\n", user_ata_x));
 
     let (user_ata_y, _) = Pubkey::find_program_address(
         &[user.pubkey().as_ref(), quasar_svm::SPL_TOKEN_PROGRAM_ID.as_ref(), mint_y.as_ref()],
         &quasar_svm::SPL_ASSOCIATED_TOKEN_PROGRAM_ID
     );
-    println!("==== User ATA Y ==== {}", user_ata_y);
+    out.push_str(&format!("==== User ATA Y ==== {}\n", user_ata_y));
 
     let (user_ata_lp, _) = Pubkey::find_program_address(
         &[user.pubkey().as_ref(), quasar_svm::SPL_TOKEN_PROGRAM_ID.as_ref(), mint_lp.as_ref()],
         &quasar_svm::SPL_ASSOCIATED_TOKEN_PROGRAM_ID
     );
 
-    println!("==== User ATA LP ==== {}", user_ata_lp);
+    out.push_str(&format!("==== User ATA LP ==== {}\n\n", user_ata_lp));
+    print!("{}", out);
+
     // --- fund maker (pool creator / admin) ---
     svm.set_account(Account {
         address: maker.pubkey(),
@@ -197,7 +204,7 @@ fn setup() -> (QuasarSvm, State) {
         user_ata_x,
         user_ata_y,
         user_ata_lp,
-        seed: SEED,
+        seed,
         fee: FEE,
     };
 
@@ -321,14 +328,7 @@ fn run_swap(
     svm.process_instruction(&ix, &[])
 }
 
-fn run_toggle_pool(svm: &mut QuasarSvm, state: &State) -> ExecutionResult {
-    let ix: Instruction = (TogglePoolInstruction {
-        admin: Address::from(state.maker.pubkey().to_bytes()),
-        config: Address::from(state.config.to_bytes()),
-    }).into();
 
-    svm.process_instruction(&ix, &[])
-}
 
 // ===========================================================================
 // Tests — Initialize
@@ -596,25 +596,7 @@ fn test_swap_constant_product_invariant() {
     );
 }
 
-// ===========================================================================
-// Tests — Toggle Pool
-// ===========================================================================
 
-#[test]
-fn test_toggle_pool() {
-    let (mut svm, state) = setup();
-    run_initialize(&mut svm, &state).assert_success();
-
-    // toggle should lock the pool
-    let result = run_toggle_pool(&mut svm, &state);
-    // toggle_pool requires `has_one = authority` where authority is set in config.
-    // initialize sets authority to None, so toggle may fail due to authority check
-    // If toggle fails, that's expected behavior with no authority set
-    if result.is_ok() {
-        // if toggled successfully, deposits should now fail (pool locked)
-        run_deposit(&mut svm, &state, 1_000_000, 10_000_000_000, 10_000_000_000).assert_success(); // deposit still works if locked flag isn't checked
-    }
-}
 
 // ===========================================================================
 // Tests — Swap on empty pool / before deposit

@@ -60,11 +60,6 @@ mod quasar_amm {
         ctx.accounts.emit_event()
     }
 
-    // locks or unlocks the pool (admin only)
-    #[instruction(discriminator = 4)]
-    pub fn toggle_pool(ctx: Ctx<TogglePool>) -> Result<(), ProgramError> {
-        ctx.accounts.toggle_pool()
-    }
 }
 
 #[cfg(test)]
