@@ -40,6 +40,7 @@ pub struct Initialize<'info> {
     )]
     pub vault_y: &'info Account<Token>,
 
+    // main config PDA for this AMM pool, seeded by the provided seed value
     #[account(init, payer = maker, seeds = Config::seeds(seed), bump)]
     pub config: &'info mut Account<Config>,
 
@@ -67,6 +68,10 @@ pub struct Initialize<'info> {
 }
 
 impl<'info> Initialize<'info> {
+    /// Sets up the pool config account with all required parameters
+    /// * `fee` - swap fee in basis points (e.g. 30 = 0.3%)
+    /// * `seed` - unique seed to derive the config PDA
+    /// * `bumps` - PDA bump seeds from account validation
     #[inline(always)]
     pub fn initialize(
         &mut self,
@@ -89,6 +94,7 @@ impl<'info> Initialize<'info> {
         Ok(())
     }
 
+    /// Emits a PoolInitialized event for indexers and frontends
     #[inline(always)]
     pub fn emit_event(&self) -> Result<(), ProgramError> {
         emit!(PoolInitialized {

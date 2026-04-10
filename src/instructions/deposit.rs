@@ -97,6 +97,11 @@ pub struct Deposit<'info> {
 }
 
 impl<'info> Deposit<'info> {
+    /// Deposits liquidity into the pool and mints LP tokens to the user
+    /// * `amount` - amount of LP tokens to mint to the user
+    /// * `max_x` - max amount of token X user is willing to deposit (slippage protection)
+    /// * `max_y` - max amount of token Y user is willing to deposit (slippage protection)
+    /// * `bump` - PDA bump seeds for signing
     #[inline(always)]
     pub fn deposit(
         &mut self,
@@ -134,12 +139,13 @@ impl<'info> Deposit<'info> {
             }
         };
 
+        // slippage protection: ensure calculated amounts don't exceed user's maximum
         require!(x <= max_x && y <= max_y, AmmError::SlippageExceeded);
 
         // deposit token from user to vault (X)
 
         self.deposit_tokens(true, x)?;
-        // deposit token from user to vault (X)
+        // deposit token from user to vault (Y)
         self.deposit_tokens(false, y)?;
         // Mint LP tokens to user as proof of liquidity provision
         self.mint_lp_tokens(amount, bump)?;
@@ -147,6 +153,9 @@ impl<'info> Deposit<'info> {
         Ok(())
     }
 
+    /// Transfers tokens from the user's account to the pool vault
+    /// * `is_x` - true if depositing token X, false for token Y
+    /// * `amount` - amount of tokens to transfer
     #[inline(always)]
     pub fn deposit_tokens(&self, is_x: bool, amount: u64) -> Result<(), ProgramError> {
         let (
@@ -159,9 +168,14 @@ impl<'info> Deposit<'info> {
             false => (self.user_ata_y, self.vault_y, self.mint_y, self.mint_y.decimals()),
         };
 
+        // invoke the SPL token transfer_checked, user signs as authority
         self.token_program.transfer_checked(from, mint, to, self.user, amount, decimals).invoke()
     }
 
+    /// Mints LP tokens to the user as proof of liquidity provision
+    /// Uses invoke_signed because config PDA is the mint authority
+    /// * `amount` - amount of LP tokens to mint
+    /// * `bump` - PDA bump seeds for signing
     #[inline(always)]
     pub fn mint_lp_tokens(&self, amount: u64, bump: &DepositBumps) -> Result<(), ProgramError> {
         self.token_program
@@ -172,6 +186,7 @@ impl<'info> Deposit<'info> {
         // new changes about defining and accessing seeds were pushed on April 8 2026
     }
 
+    /// Emits a LiquidityAdded event for indexers and frontends
     #[inline(always)]
     pub fn emit_event(&self) -> Result<(), ProgramError> {
         emit!(LiquidityAdded {

@@ -4,6 +4,7 @@ use crate::{ errors::AmmError, events::PoolLockToggled, state::Config };
 
 #[derive(Accounts)]
 pub struct TogglePool<'info> {
+    // admin who has authority to lock/unlock the pool
     pub admin: &'info mut Signer,
 
     // main config of amm
@@ -16,14 +17,19 @@ pub struct TogglePool<'info> {
 }
 
 impl<'info> TogglePool<'info> {
+    /// Toggles the pool lock state between locked and unlocked
+    /// Only the designated authority can call this
     pub fn toggle_pool(&mut self) -> Result<(), ProgramError> {
+        // ensure the pool has an authority set
         require!(self.config.authority.is_some(), AmmError::InvalidAuthority);
 
+        // check if the signer matches the pool authority
         let owner_matched = match self.config.authority {
             Some(authority) => *self.admin.address() == authority,
             _ => false,
         };
 
+        // reject if the signer is not the authority
         if !owner_matched {
             return Err(ProgramError::InvalidAccountOwner);
         }
@@ -31,6 +37,7 @@ impl<'info> TogglePool<'info> {
         // means the owner is trying to modify this .. allow
         self.config.locked = !self.config.locked;
 
+        // emit event so indexers can track pool lock state changes
         emit!(PoolLockToggled {
             authority: *self.admin.address(),
             locked: self.config.locked.into(),

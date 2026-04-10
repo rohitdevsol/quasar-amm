@@ -58,6 +58,7 @@ pub enum AmmError {
     ZeroBalance,
 }
 
+// maps constant_product_curve errors to our custom AMM error codes
 impl From<CurveError> for AmmError {
     fn from(error: CurveError) -> AmmError {
         match error {

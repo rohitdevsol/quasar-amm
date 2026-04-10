@@ -97,6 +97,7 @@ pub struct Withdraw<'info> {
 }
 
 impl<'info> Withdraw<'info> {
+    /// Withdraws liquidity from the pool by burning LP tokens
     /// * `amount` - Amount of LP tokens to burn
     /// * `min_x` - Minimum amount of token X user expects to receive
     /// * `min_y` - Minimum amount of token Y user expects to receive
@@ -108,6 +109,7 @@ impl<'info> Withdraw<'info> {
         min_y: u64,
         bumps: &WithdrawBumps
     ) -> Result<(), ProgramError> {
+        // ensure the pool is not locked
         require!(self.config.locked == false, AmmError::PoolLocked);
 
         // ensure that user is requesting to burn some LP tokens
@@ -149,6 +151,8 @@ impl<'info> Withdraw<'info> {
         Ok(())
     }
 
+    /// Burns LP tokens from the user's account to reduce their pool share
+    /// * `amount` - amount of LP tokens to burn
     #[inline(always)]
     pub fn burn_lp_tokens(&mut self, amount: u64) -> Result<(), ProgramError> {
         // burn lp tokens from the user lp account
@@ -156,6 +160,11 @@ impl<'info> Withdraw<'info> {
         Ok(())
     }
 
+    /// Transfers tokens from the pool vault back to the user
+    /// Uses invoke_signed because config PDA is the vault authority
+    /// * `amount` - amount of tokens to withdraw
+    /// * `is_x` - true if withdrawing token X, false for token Y
+    /// * `bumps` - PDA bump seeds for signing
     #[inline(always)]
     pub fn withdraw_tokens(
         &mut self,
@@ -179,6 +188,7 @@ impl<'info> Withdraw<'info> {
             .invoke_signed(&self.config_seeds(bumps))
     }
 
+    /// Emits a LiquidityRemoved event for indexers and frontends
     #[inline(always)]
     pub fn emit_event(&self) -> Result<(), ProgramError> {
         emit!(LiquidityRemoved {
