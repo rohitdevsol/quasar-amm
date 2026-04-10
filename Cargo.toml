@@ -25,9 +25,13 @@ constant-product-curve = { git = "https://github.com/rohitdevsol/constant-produc
 solana-instruction = { version = "3.2.0" }
 
 [dev-dependencies]
-# quasar-amm-client = { path = "target/client/rust/quasar-amm-client" }
+quasar-amm-client = { path = "target/client/rust/quasar-amm-client" }
 quasar-svm = { git = "https://github.com/blueshift-gg/quasar-svm" }
 solana-account = { version = "3.4.0" }
 solana-address = { version = "2.2.0", features = ["decode"] }
 solana-instruction = { version = "3.2.0", features = ["bincode"] }
 solana-pubkey = { version = "4.1.0" }
+solana-keypair = "3.1.2"
+solana-program-option = "3.1.0"
+spl-token = "9.0.0"
+solana-program-pack = "3.1.0"
