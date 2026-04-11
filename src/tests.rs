@@ -58,9 +58,8 @@ const MINT_SPEC: Mint = Mint {
 };
 
 const FEE: u16 = 30; // 0.3% fee in basis points
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{ AtomicU64, Ordering };
 static NEXT_SEED: AtomicU64 = AtomicU64::new(42);
-
 
 // ---------------------------------------------------------------------------
 // Helper — read an SPL token account from SVM state
@@ -109,6 +108,7 @@ fn setup() -> (QuasarSvm, State) {
     out.push_str(&format!("==== Config ==== {}\n", config));
     // derive mint_lp PDA: seeds = [b"lp", config]
     let (mint_lp, _) = Pubkey::find_program_address(&[b"lp", config.as_ref()], &crate::ID);
+    // pack mint lp and find who is the authority
 
     out.push_str(&format!("==== Mint LP ==== {}\n", mint_lp));
     // derive vault ATAs — owned by config PDA
@@ -328,8 +328,6 @@ fn run_swap(
     svm.process_instruction(&ix, &[])
 }
 
-
-
 // ===========================================================================
 // Tests — Initialize
 // ===========================================================================
@@ -354,6 +352,7 @@ fn test_initialize() {
 
     // mint_lp should be initialized with 0 supply and 6 decimals
     let mint_lp = read_mint(&svm, &state.mint_lp);
+    println!("Mint LP: {:?}", mint_lp);
     assert_eq!(mint_lp.supply, 0);
     assert_eq!(mint_lp.decimals, 6);
     assert!(mint_lp.is_initialized);
@@ -595,8 +594,6 @@ fn test_swap_constant_product_invariant() {
         k_after
     );
 }
-
-
 
 // ===========================================================================
 // Tests — Swap on empty pool / before deposit
